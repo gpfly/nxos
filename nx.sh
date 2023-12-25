@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+set -ex
 ROOTDIR=$(realpath $(dirname $(readlink -f ${0})))
 NUTTXDIR=${ROOTDIR}/nuttx
 TOOLSDIR=${NUTTXDIR}/tools
@@ -33,7 +33,7 @@ function build_board()
   echo -e "  make -C ${NUTTXDIR} savedefconfig"
 
   if ! ${TOOLSDIR}/configure.sh $1; then
-    make -C ${NUTTXDIR} distclean -j
+    make -C ${NUTTXDIR} distclean -j4
     rm $ROOTDIR/compile_commands.json
     if ! ${TOOLSDIR}/configure.sh $1; then
       echo "Error: ############# config ${1} fail ##############"
@@ -59,6 +59,41 @@ function build_board()
   fi
 }
 
+function build_board_cmake()
+{
+  echo -e "Build command line:"
+  echo -e "  cd ${NUTTXDIR}"
+  echo -e "  cmake -B build -DBOARD_CONFIG=$1 -GNinja"
+  echo -e "  cmake --build build -t savedefconfig"
+
+  cd ${NUTTXDIR}
+  if ! cmake -B build -DBOARD_CONFIG=$1 -GNinja; then
+    rm build -rf
+    if ! make -B build -DBOARD_CONFIG=$1 -GNinja; then
+      echo "Error: ############# config ${1} fail ##############"
+      rm build -rf
+      exit 1
+    fi
+  fi
+  
+  if ! cmake --build build; then
+    echo "Error: ############# build ${1} fail ##############"
+    exit 2
+  fi
+
+  if [ "${2}" == "distclean" ]; then
+    rm build -rf
+    return;
+  fi
+
+  cmake --build build -t savedefconfig
+  if [ ! -d $1 ]; then
+    cp ${NUTTXDIR}/build/defconfig ${ROOTDIR}/nuttx/boards/*/*/${1/[:|\/]//configs/}
+  else
+    cp ${NUTTXDIR}/build/defconfig $1
+  fi
+}
+
 if [ $# == 0 ]; then
   echo "Usage: $0 <board-name>:<config-name> [make options]"
   echo "       $0 <config-path> [make options]"
@@ -69,8 +104,8 @@ board_config=$1
 shift
 
 if [ -d ${ROOTDIR}/${board_config} ]; then
-  build_board ${ROOTDIR}/${board_config} $*
+  build_board_cmake ${ROOTDIR}/${board_config} $*
 else
-  build_board ${board_config} $*
+  build_board_cmake ${board_config} $*
 fi
 
