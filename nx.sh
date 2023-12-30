@@ -32,7 +32,7 @@ function build_board()
   echo -e "  make -C ${NUTTXDIR} ${@:2}"
   echo -e "  make -C ${NUTTXDIR} savedefconfig"
 
-  if ! ${TOOLSDIR}/configure.sh $1; then
+  if ! ${TOOLSDIR}/configure.sh -e $1; then
     make -C ${NUTTXDIR} distclean -j4
     rm $ROOTDIR/compile_commands.json
     if ! ${TOOLSDIR}/configure.sh $1; then
