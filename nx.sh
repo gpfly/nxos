@@ -41,7 +41,7 @@ function build_board()
     fi
   fi
 
-  if ! ${BEAR} make -C ${NUTTXDIR} ${@:2} -j; then
+  if ! ${BEAR} make -C ${NUTTXDIR} ${@:2} ; then
     echo "Error: ############# build ${1} fail ##############"
     exit 2
   fi
@@ -69,17 +69,21 @@ function build_board_cmake()
   cd ${NUTTXDIR}
   if ! cmake -B build -DBOARD_CONFIG=$1 -GNinja; then
     rm build -rf
-    if ! make -B build -DBOARD_CONFIG=$1 -GNinja; then
+    if ! cmake -B build -DBOARD_CONFIG=$1 -GNinja; then
       echo "Error: ############# config ${1} fail ##############"
       rm build -rf
       exit 1
     fi
   fi
   
-  if ! cmake --build build; then
+  if [ $# -eq 1 ] && ! cmake --build build; then
     echo "Error: ############# build ${1} fail ##############"
     exit 2
+  elif [ $# -ge 2 ] && ! cmake --build build -t ${@:2}; then
+    echo "Error: ############# build -t ${@:2} fail ##############"
+    exit 2
   fi
+
 
   if [ "${2}" == "distclean" ]; then
     rm build -rf
