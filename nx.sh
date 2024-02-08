@@ -75,7 +75,11 @@ function build_board_cmake()
       exit 1
     fi
   fi
-  
+
+  if [ -d ${NUTTXDIR}/build ] && [ ! -d ${ROOTDIR}/build ]; then
+    ln -s ${NUTTXDIR}/build ${ROOTDIR}/build
+  fi
+
   if [ $# -eq 1 ] && ! cmake --build build; then
     echo "Error: ############# build ${1} fail ##############"
     exit 2
